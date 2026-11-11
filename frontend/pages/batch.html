@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FraudShield AI — Batch Analysis</title>
+  <meta name="description" content="Upload a CSV file to run batch fraud detection on multiple transactions">
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+
+    <header class="topbar">
+      <div>
+        <div class="topbar-title">Batch Analysis</div>
+        <div class="topbar-subtitle">Upload a CSV to analyze multiple transactions at once</div>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Upload Zone + Format Guide -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Upload CSV File</span>
+          </div>
+          <div class="card-body">
+
+            <div id="drop-zone" onclick="document.getElementById('csv-input').click()"
+              style="border:2px dashed var(--border);border-radius:var(--radius-lg);padding:40px;text-align:center;cursor:pointer;transition:all 0.2s var(--ease);"
+              ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+              <div style="font-size:36px;margin-bottom:10px">📂</div>
+              <div style="font-weight:600;margin-bottom:4px">Drop CSV here or click to browse</div>
+              <div style="font-size:12px;color:var(--text-muted)">Max 1,000 transactions per batch</div>
+              <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleFile(event)">
+            </div>
+
+            <div id="file-info" style="display:none;margin-top:12px;padding:12px 16px;background:var(--bg-elevated);border-radius:var(--radius-md);font-size:13px">
+              📄 <strong id="file-name">—</strong> — <span id="file-rows">0</span> rows detected
+            </div>
+
+            <div style="margin-top:16px;display:flex;gap:10px">
+              <button class="btn btn-primary" id="run-batch-btn" onclick="runBatch()" disabled>
+                ⚡ Run Analysis
+              </button>
+              <button class="btn btn-ghost" onclick="downloadSample()">
+                ⬇️ Sample CSV
+              </button>
+              <button class="btn btn-ghost" id="export-btn" onclick="exportResults()" style="display:none">
+                💾 Export Results
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Required CSV Format</span></div>
+          <div class="card-body">
+            <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:12px">
+              Your CSV must have these exact column headers:
+            </div>
+            <table class="data-table" style="font-size:12px">
+              <thead><tr><th>Column</th><th>Type</th><th>Example</th></tr></thead>
+              <tbody>
+                <tr><td class="font-mono">transaction_type</td><td>string</td><td>TRANSFER</td></tr>
+                <tr><td class="font-mono">amount</td><td>float</td><td>250000.00</td></tr>
+                <tr><td class="font-mono">origin_account</td><td>string</td><td>C123456789</td></tr>
+                <tr><td class="font-mono">destination_account</td><td>string</td><td>C987654321</td></tr>
+                <tr><td class="font-mono">origin_balance_before</td><td>float</td><td>300000.00</td></tr>
+                <tr><td class="font-mono">origin_balance_after</td><td>float</td><td>50000.00</td></tr>
+                <tr><td class="font-mono">dest_balance_before</td><td>float</td><td>0.00</td></tr>
+                <tr><td class="font-mono">dest_balance_after</td><td>float</td><td>250000.00</td></tr>
+              </tbody>
+            </table>
+            <div style="margin-top:12px;font-size:11.5px;color:var(--text-muted)">
+              Valid transaction_type values: CASH_IN, CASH_OUT, DEBIT, PAYMENT, TRANSFER
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Results -->
+      <div class="card" id="results-card" style="display:none">
+        <div class="card-header">
+          <span class="card-title">Batch Results</span>
+          <div style="display:flex;gap:10px;align-items:center">
+            <span class="badge badge-high" id="res-flagged">— Flagged</span>
+            <span class="text-muted" id="res-total" style="font-size:12px">— total</span>
+          </div>
+        </div>
+
+        <!-- Summary row -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:16px 22px;border-bottom:1px solid var(--border)">
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Total Processed</div>
+            <div style="font-size:24px;font-weight:800" id="sum-total">—</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Flagged Suspicious</div>
+            <div style="font-size:24px;font-weight:800;color:var(--danger)" id="sum-flagged">—</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Flag Rate</div>
+            <div style="font-size:24px;font-weight:800;color:var(--warning)" id="sum-rate">—</div>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Origin</th>
+                <th>Destination</th>
+                <th>Fraud Score</th>
+                <th>Risk</th>
+                <th>Label</th>
+              </tr>
+            </thead>
+            <tbody id="batch-results-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  document.getElementById('sidebar-mount').innerHTML = SIDEBAR_HTML;
+  document.querySelectorAll('.nav-link').forEach(a => {
+    if (a.id === 'nav-batch') a.classList.add('active');
+  });
+
+  let parsedRows = [];
+  let batchResults = null;
+
+  function onDragOver(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').style.borderColor = 'var(--accent)';
+    document.getElementById('drop-zone').style.background   = 'var(--accent-glow)';
+  }
+  function onDragLeave(e) {
+    document.getElementById('drop-zone').style.borderColor = 'var(--border)';
+    document.getElementById('drop-zone').style.background   = '';
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    onDragLeave(e);
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  }
+  function handleFile(e) { processFile(e.target.files[0]); }
+
+  function processFile(file) {
+    if (!file || !file.name.endsWith('.csv')) { toast('Please upload a .csv file', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const lines = e.target.result.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      parsedRows = lines.slice(1).map(line => {
+        const vals = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = vals[i] || '');
+        return obj;
+      }).filter(r => r.transaction_type && r.amount);
+
+      document.getElementById('file-info').style.display = 'block';
+      document.getElementById('file-name').textContent   = file.name;
+      document.getElementById('file-rows').textContent   = parsedRows.length;
+      document.getElementById('run-batch-btn').disabled  = parsedRows.length === 0;
+      toast(`Loaded ${parsedRows.length} transactions`, 'success');
+    };
+    reader.readAsText(file);
+  }
+
+  async function runBatch() {
+    if (!parsedRows.length) return;
+    const btn = document.getElementById('run-batch-btn');
+    showLoader(btn);
+
+    try {
+      const payload = parsedRows.slice(0, 1000).map(r => ({
+        transaction_type:      (r.transaction_type || 'PAYMENT').toUpperCase(),
+        amount:                parseFloat(r.amount) || 1,
+        origin_account:        r.origin_account || 'UNKNOWN',
+        destination_account:   r.destination_account || 'UNKNOWN',
+        origin_balance_before: parseFloat(r.origin_balance_before) || 0,
+        origin_balance_after:  parseFloat(r.origin_balance_after)  || 0,
+        dest_balance_before:   parseFloat(r.dest_balance_before)   || 0,
+        dest_balance_after:    parseFloat(r.dest_balance_after)     || 0,
+      }));
+
+      batchResults = await api.predictBatch(payload);
+
+      document.getElementById('results-card').style.display = 'block';
+      document.getElementById('export-btn').style.display   = 'inline-flex';
+      document.getElementById('sum-total').textContent   = fmtNum(batchResults.total);
+      document.getElementById('sum-flagged').textContent = fmtNum(batchResults.flagged);
+      document.getElementById('sum-rate').textContent    = fmtPct(batchResults.flagged / batchResults.total * 100);
+      document.getElementById('res-flagged').textContent = `${batchResults.flagged} Flagged`;
+      document.getElementById('res-total').textContent   = `${batchResults.total} total`;
+
+      const tbody = document.getElementById('batch-results-tbody');
+      tbody.innerHTML = batchResults.results.map((r, i) => {
+        const src = parsedRows[i] || {};
+        return `<tr>
+          <td class="font-mono text-muted">${i + 1}</td>
+          <td>${src.transaction_type || '—'}</td>
+          <td>${fmtCurrency(parseFloat(src.amount))}</td>
+          <td class="font-mono text-muted" style="font-size:11px">${(src.origin_account||'').substring(0,12)}</td>
+          <td class="font-mono text-muted" style="font-size:11px">${(src.destination_account||'').substring(0,12)}</td>
+          <td class="font-mono">${(r.fraud_probability * 100).toFixed(1)}%</td>
+          <td>${riskBadge(r.risk_category)}</td>
+          <td><span class="badge ${r.predicted_class===1?'badge-high':'badge-low'}">${r.label}</span></td>
+        </tr>`;
+      }).join('');
+
+      toast(`Batch complete: ${batchResults.flagged} of ${batchResults.total} flagged`, batchResults.flagged > 0 ? 'warning' : 'success');
+
+    } catch (e) {
+      toast('Batch failed: ' + e.message, 'error', 7000);
+    } finally {
+      hideLoader(btn, '⚡ Run Analysis');
+    }
+  }
+
+  function exportResults() {
+    if (!batchResults) return;
+    const headers = ['row','label','fraud_probability','risk_category','predicted_class'];
+    const rows = batchResults.results.map((r, i) => [i+1, r.label, r.fraud_probability, r.risk_category, r.predicted_class]);
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `fraudshield_batch_${Date.now()}.csv`;
+    a.click();
+    toast('Results exported as CSV', 'success');
+  }
+
+  function downloadSample() {
+    const csv = `transaction_type,amount,origin_account,destination_account,origin_balance_before,origin_balance_after,dest_balance_before,dest_balance_after
+TRANSFER,350000,C1305486145,C553264065,350000,0,0,350000
+PAYMENT,1200.50,C8392847563,M428349284,5000,3799.50,10000,11200.50
+CASH_OUT,45000,C2938475612,C1234567890,80000,35000,0,45000
+TRANSFER,890000,C5674839201,C8473920183,900000,10000,0,890000
+DEBIT,299.99,C9182736450,M903847561,1500,1200.01,2000,2299.99`;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'fraudshield_sample.csv';
+    a.click();
+    toast('Sample CSV downloaded', 'info');
+  }
+</script>
+</body>
+</html>

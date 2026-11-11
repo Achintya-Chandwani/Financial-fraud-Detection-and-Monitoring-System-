@@ -1,0 +1,11 @@
+Place the PaySim dataset CSV here as:
+
+    transactions.csv
+
+Download from:
+    https://www.kaggle.com/datasets/mtalaltariq/paysim-data
+
+If the file is missing, notebook 01_EDA.ipynb will generate a 10,000-row
+synthetic demo dataset automatically and save it here.
+
+DO NOT commit transactions.csv to Git (it is in .gitignore).

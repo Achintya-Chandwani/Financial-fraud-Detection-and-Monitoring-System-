@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FraudShield AI — Model Performance</title>
+  <meta name="description" content="View ML model evaluation metrics, confusion matrix, and SHAP feature importance">
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+
+    <header class="topbar">
+      <div>
+        <div class="topbar-title">Model Performance</div>
+        <div class="topbar-subtitle">Evaluation metrics for the deployed fraud detection model</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" onclick="loadMetrics()">🔄 Refresh</button>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Alert: Model not trained -->
+      <div id="no-model-alert" style="display:none;background:var(--warning-bg);border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-md);padding:18px 22px;margin-bottom:24px">
+        <div style="font-size:14px;font-weight:700;color:var(--warning);margin-bottom:8px">⚠️ No Trained Model Found</div>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.7">
+          To train the model:<br>
+          1. Place <code style="background:var(--bg-elevated);padding:1px 6px;border-radius:4px;font-family:var(--font-mono)">transactions.csv</code> in <code style="background:var(--bg-elevated);padding:1px 6px;border-radius:4px;font-family:var(--font-mono)">data/raw/</code><br>
+          2. Run notebooks in order: <strong>01 → 02 → 03 → 04 → 05</strong><br>
+          3. Restart the backend: <code style="background:var(--bg-elevated);padding:1px 6px;border-radius:4px;font-family:var(--font-mono)">uvicorn backend.main:app --reload</code>
+        </div>
+      </div>
+
+      <div id="metrics-content" style="display:none">
+
+        <!-- Active Model Banner -->
+        <div style="background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1));border:1px solid rgba(59,130,246,0.2);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:16px">
+          <div style="font-size:36px">🤖</div>
+          <div>
+            <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted)">Currently Deployed Model</div>
+            <div style="font-size:22px;font-weight:800;color:var(--text-primary)" id="deployed-name">—</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:3px">Version <span id="deployed-version" class="font-mono">—</span> · Trained <span id="deployed-date">—</span> · Threshold <span id="deployed-threshold" class="font-mono">—</span></div>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="stats-grid" style="margin-bottom:24px">
+          <div class="stat-card accent">
+            <div class="stat-label">Precision</div>
+            <div class="stat-value" id="m-precision">—</div>
+            <div class="stat-icon">🎯</div>
+            <div class="stat-change">TP / (TP + FP)</div>
+          </div>
+          <div class="stat-card success">
+            <div class="stat-label">Recall</div>
+            <div class="stat-value" id="m-recall">—</div>
+            <div class="stat-icon">📡</div>
+            <div class="stat-change">TP / (TP + FN)</div>
+          </div>
+          <div class="stat-card warning">
+            <div class="stat-label">F1 Score</div>
+            <div class="stat-value" id="m-f1">—</div>
+            <div class="stat-icon">⚖️</div>
+            <div class="stat-change">Harmonic mean P&R</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">ROC-AUC</div>
+            <div class="stat-value" id="m-roc">—</div>
+            <div class="stat-icon">📈</div>
+            <div class="stat-change">Area under ROC curve</div>
+          </div>
+          <div class="stat-card danger">
+            <div class="stat-label">PR-AUC</div>
+            <div class="stat-value" id="m-prauc">—</div>
+            <div class="stat-icon">🔺</div>
+            <div class="stat-change">Key metric for imbalance</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Test Samples</div>
+            <div class="stat-value" id="m-samples">—</div>
+            <div class="stat-icon">🗃️</div>
+            <div class="stat-change">Evaluation dataset size</div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Model Comparison</span></div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="chart-comparison"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">SHAP Feature Importance</span></div>
+            <div class="card-body">
+              <div class="chart-container"><canvas id="chart-shap"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Confusion Matrix + Dataset Info -->
+        <div class="charts-grid" style="margin-top:16px">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Confusion Matrix</span></div>
+            <div class="card-body">
+              <div id="confusion-matrix-container"></div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:14px;line-height:1.6">
+                <strong>TN</strong> (green, top-left): Correctly identified legitimate<br>
+                <strong>FP</strong> (red, top-right): Legitimate flagged as fraud<br>
+                <strong>FN</strong> (orange, bottom-left): Fraud missed<br>
+                <strong>TP</strong> (green, bottom-right): Correctly identified fraud
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Dataset Statistics</span></div>
+            <div class="card-body">
+              <div class="metric-row">
+                <span class="metric-name">Training Samples</span>
+                <span class="metric-value font-mono" id="d-train">—</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Test Samples</span>
+                <span class="metric-value font-mono" id="d-test">—</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Decision Threshold</span>
+                <span class="metric-value font-mono" id="d-threshold">—</span>
+              </div>
+              <div style="margin-top:16px;font-size:12px;color:var(--text-muted);line-height:1.6;padding:12px;background:var(--bg-elevated);border-radius:var(--radius-md)">
+                💡 Threshold is optimized for F1 score on the test set, not the default 0.5. This improves recall on the imbalanced fraud class.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  document.getElementById('sidebar-mount').innerHTML = SIDEBAR_HTML;
+  document.querySelectorAll('.nav-link').forEach(a => {
+    if (a.id === 'nav-model') a.classList.add('active');
+  });
+
+  Chart.defaults.color = '#8b949e';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.08)';
+
+  let charts = {};
+  function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+  async function loadMetrics() {
+    try {
+      const m = await api.modelMetrics();
+
+      document.getElementById('no-model-alert').style.display = 'none';
+      document.getElementById('metrics-content').style.display = 'block';
+
+      // Banner
+      document.getElementById('deployed-name').textContent      = m.model_name || '—';
+      document.getElementById('deployed-version').textContent   = m.model_version || '—';
+      document.getElementById('deployed-date').textContent      = m.training_date ? fmtDate(m.training_date) : '—';
+      document.getElementById('deployed-threshold').textContent = m.threshold ?? '—';
+
+      // Metric cards
+      document.getElementById('m-precision').textContent = fmtScore(m.precision_score);
+      document.getElementById('m-recall').textContent    = fmtScore(m.recall_score);
+      document.getElementById('m-f1').textContent        = fmtScore(m.f1_score);
+      document.getElementById('m-roc').textContent       = fmtScore(m.roc_auc_score);
+      document.getElementById('m-prauc').textContent     = fmtScore(m.pr_auc_score);
+      document.getElementById('m-samples').textContent   = fmtNum(m.test_samples);
+
+      // Dataset info
+      document.getElementById('d-train').textContent     = fmtNum(m.training_samples);
+      document.getElementById('d-test').textContent      = fmtNum(m.test_samples);
+      document.getElementById('d-threshold').textContent = m.threshold;
+
+      // Confusion matrix
+      if (m.confusion_matrix) renderConfusionMatrix(m.confusion_matrix, 'confusion-matrix-container');
+
+      // Model comparison chart
+      if (m.all_models && m.all_models.length) {
+        const models = m.all_models;
+        destroyChart('cmp');
+        charts['cmp'] = new Chart(document.getElementById('chart-comparison'), {
+          type: 'radar',
+          data: {
+            labels: ['Precision', 'Recall', 'F1', 'ROC-AUC', 'PR-AUC'],
+            datasets: models.map((mdl, i) => ({
+              label: mdl.model_name,
+              data: [mdl.precision, mdl.recall, mdl.f1, mdl.roc_auc, mdl.pr_auc],
+              borderColor: ['#3b82f6','#22c55e','#ef4444'][i % 3],
+              backgroundColor: ['rgba(59,130,246,0.1)','rgba(34,197,94,0.1)','rgba(239,68,68,0.1)'][i % 3],
+              borderWidth: 2, pointRadius: 4,
+            }))
+          },
+          options: { responsive: true, maintainAspectRatio: false,
+            scales: { r: { min: 0, max: 1, ticks: { stepSize: 0.2, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.08)' }, pointLabels: { font: { size: 11 } } } },
+            plugins: { legend: { position: 'bottom' } }
+          }
+        });
+      }
+
+      // SHAP importance bar chart
+      if (m.shap_feature_importance) {
+        const entries = Object.entries(m.shap_feature_importance).sort((a,b) => b[1]-a[1]).slice(0, 10);
+        destroyChart('shap');
+        charts['shap'] = new Chart(document.getElementById('chart-shap'), {
+          type: 'bar',
+          data: {
+            labels: entries.map(e => e[0]),
+            datasets: [{ label: 'Mean |SHAP|', data: entries.map(e => e[1]),
+              backgroundColor: 'rgba(59,130,246,0.7)', borderRadius: 4, borderSkipped: false }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, y: { grid: { display: false }, ticks: { font: { size: 11, family: 'JetBrains Mono' } } } }
+          }
+        });
+      }
+
+    } catch (e) {
+      if (e.message.includes('503') || e.message.toLowerCase().includes('model')) {
+        document.getElementById('no-model-alert').style.display = 'block';
+        document.getElementById('metrics-content').style.display = 'none';
+      } else {
+        toast('Failed to load metrics: ' + e.message, 'error');
+      }
+    }
+  }
+
+  loadMetrics();
+</script>
+</body>
+</html>

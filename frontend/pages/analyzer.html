@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FraudShield AI — Transaction Analyzer</title>
+  <meta name="description" content="Analyze individual transactions for fraud risk using the FraudShield AI model">
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+
+  <div class="main-content">
+    <header class="topbar">
+      <div>
+        <div class="topbar-title">Transaction Analyzer</div>
+        <div class="topbar-subtitle">Submit a transaction to get real-time fraud risk scoring</div>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+        <!-- Input Form -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Transaction Details</span>
+            <button class="btn btn-ghost" onclick="fillSample()" id="sample-btn">Load Sample</button>
+          </div>
+          <div class="card-body">
+            <form id="predict-form" onsubmit="submitPrediction(event)">
+              <div class="form-grid" style="margin-bottom:16px">
+
+                <div class="form-group">
+                  <label class="form-label" for="tx-type">Transaction Type</label>
+                  <select class="form-select" id="tx-type" required>
+                    <option value="">Select type...</option>
+                    <option value="CASH_IN">CASH_IN</option>
+                    <option value="CASH_OUT">CASH_OUT</option>
+                    <option value="DEBIT">DEBIT</option>
+                    <option value="PAYMENT">PAYMENT</option>
+                    <option value="TRANSFER">TRANSFER</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="tx-amount">Amount (USD)</label>
+                  <input class="form-input" type="number" id="tx-amount" placeholder="e.g. 250000" min="0.01" step="0.01" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="tx-orig">Origin Account</label>
+                  <input class="form-input" type="text" id="tx-orig" placeholder="C1234567890" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="tx-dest">Destination Account</label>
+                  <input class="form-input" type="text" id="tx-dest" placeholder="C9876543210" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="tx-ob-before">Origin Balance Before</label>
+                  <input class="form-input" type="number" id="tx-ob-before" placeholder="300000" step="0.01" value="0">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="tx-ob-after">Origin Balance After</label>
+                  <input class="form-input" type="number" id="tx-ob-after" placeholder="50000" step="0.01" value="0">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="tx-db-before">Dest. Balance Before</label>
+                  <input class="form-input" type="number" id="tx-db-before" placeholder="0" step="0.01" value="0">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="tx-db-after">Dest. Balance After</label>
+                  <input class="form-input" type="number" id="tx-db-after" placeholder="250000" step="0.01" value="0">
+                </div>
+
+              </div>
+
+              <button type="submit" class="btn btn-primary w-full" id="submit-btn">
+                🔍 Analyze Transaction
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Result Panel -->
+        <div>
+          <div class="card" id="result-card" style="display:none">
+            <div class="card-header">
+              <span class="card-title">Prediction Result</span>
+              <span id="result-label" class="badge">—</span>
+            </div>
+            <div class="card-body">
+
+              <!-- Risk Meter -->
+              <div class="risk-meter">
+                <div class="risk-circle" id="risk-circle">
+                  <span id="risk-pct">—</span>
+                  <span class="risk-label" id="risk-cat">—</span>
+                </div>
+                <div style="text-align:center;font-size:12px;color:var(--text-secondary)">
+                  Fraud Probability Score
+                </div>
+              </div>
+
+              <hr style="border-color:var(--border);margin:16px 0">
+
+              <!-- Metrics -->
+              <div class="metric-row">
+                <span class="metric-name">Predicted Class</span>
+                <span class="metric-value" id="res-class">—</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Risk Category</span>
+                <span id="res-risk">—</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Model Version</span>
+                <span class="metric-value font-mono" id="res-version">—</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Transaction ID</span>
+                <span class="metric-value font-mono text-accent" id="res-txid">—</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Timestamp</span>
+                <span class="metric-value" id="res-time">—</span>
+              </div>
+
+              <!-- Disclaimer -->
+              <div style="margin-top:14px;padding:10px 14px;background:var(--bg-elevated);border-radius:var(--radius-md);font-size:11.5px;color:var(--text-muted);line-height:1.6">
+                ⚠️ This prediction is model-generated and not guaranteed to be correct. All flagged transactions must be reviewed by a qualified analyst.
+              </div>
+            </div>
+          </div>
+
+          <!-- SHAP Explanation -->
+          <div class="card" id="shap-card" style="display:none;margin-top:16px">
+            <div class="card-header">
+              <span class="card-title">Feature Explanation (SHAP)</span>
+              <span class="text-muted" style="font-size:11px">What drove this prediction?</span>
+            </div>
+            <div class="card-body">
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:14px">
+                🔴 Positive bars <strong>increase</strong> fraud risk. 🟢 Negative bars <strong>decrease</strong> risk.
+              </div>
+              <div id="shap-container"></div>
+            </div>
+          </div>
+
+          <!-- Placeholder when no result yet -->
+          <div class="card" id="placeholder-card">
+            <div class="card-body">
+              <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <div class="empty-title">No Analysis Yet</div>
+                <div class="empty-desc">Fill in the transaction details on the left and click "Analyze Transaction" to get a fraud risk score.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  document.getElementById('sidebar-mount').innerHTML = SIDEBAR_HTML;
+  document.querySelectorAll('.nav-link').forEach(a => {
+    if (a.id === 'nav-analyzer') a.classList.add('active');
+  });
+
+  function fillSample() {
+    // High-risk sample: full balance drained via TRANSFER
+    document.getElementById('tx-type').value       = 'TRANSFER';
+    document.getElementById('tx-amount').value     = 350000;
+    document.getElementById('tx-orig').value       = 'C1305486145';
+    document.getElementById('tx-dest').value       = 'C553264065';
+    document.getElementById('tx-ob-before').value  = 350000;
+    document.getElementById('tx-ob-after').value   = 0;
+    document.getElementById('tx-db-before').value  = 0;
+    document.getElementById('tx-db-after').value   = 350000;
+    toast('Sample high-risk transaction loaded', 'info');
+  }
+
+  async function submitPrediction(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    showLoader(btn);
+
+    const payload = {
+      transaction_type:      document.getElementById('tx-type').value,
+      amount:                parseFloat(document.getElementById('tx-amount').value),
+      origin_account:        document.getElementById('tx-orig').value,
+      destination_account:   document.getElementById('tx-dest').value,
+      origin_balance_before: parseFloat(document.getElementById('tx-ob-before').value) || 0,
+      origin_balance_after:  parseFloat(document.getElementById('tx-ob-after').value)  || 0,
+      dest_balance_before:   parseFloat(document.getElementById('tx-db-before').value) || 0,
+      dest_balance_after:    parseFloat(document.getElementById('tx-db-after').value)  || 0,
+    };
+
+    try {
+      const r = await api.predict(payload);
+
+      // Show result card
+      document.getElementById('placeholder-card').style.display = 'none';
+      document.getElementById('result-card').style.display = 'block';
+
+      // Risk circle
+      const pct = (r.fraud_probability * 100).toFixed(1);
+      const circle = document.getElementById('risk-circle');
+      circle.className = `risk-circle ${r.risk_category.toLowerCase()}`;
+      document.getElementById('risk-pct').textContent = `${pct}%`;
+      document.getElementById('risk-cat').textContent = r.risk_category;
+
+      // Label badge
+      const labelEl = document.getElementById('result-label');
+      if (r.predicted_class === 1) {
+        labelEl.className = 'badge badge-high';
+        labelEl.textContent = '🚨 Suspicious';
+      } else {
+        labelEl.className = 'badge badge-low';
+        labelEl.textContent = '✅ Legitimate';
+      }
+
+      // Metrics
+      document.getElementById('res-class').textContent   = r.label;
+      document.getElementById('res-risk').innerHTML      = riskBadge(r.risk_category);
+      document.getElementById('res-version').textContent = r.model_version;
+      document.getElementById('res-txid').textContent    = '#' + r.transaction_id;
+      document.getElementById('res-time').textContent    = fmtDate(r.prediction_timestamp);
+
+      // SHAP
+      if (r.top_features && r.top_features.length) {
+        document.getElementById('shap-card').style.display = 'block';
+        renderShapBars(r.top_features, 'shap-container');
+      }
+
+      toast(r.predicted_class === 1 ? '⚠️ Transaction flagged as suspicious' : '✅ Transaction appears legitimate', r.predicted_class === 1 ? 'warning' : 'success');
+
+    } catch (err) {
+      toast('Analysis failed: ' + err.message, 'error', 7000);
+    } finally {
+      hideLoader(btn, '🔍 Analyze Transaction');
+    }
+  }
+</script>
+</body>
+</html>

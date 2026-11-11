@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FraudShield AI — Investigation Center</title>
+  <meta name="description" content="Manage fraud investigation cases and update case status">
+  <link rel="stylesheet" href="../css/main.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+
+    <header class="topbar">
+      <div>
+        <div class="topbar-title">Investigation Center</div>
+        <div class="topbar-subtitle">Manage suspicious transaction cases</div>
+      </div>
+      <div class="topbar-actions">
+        <select class="form-select" id="filter-status" onchange="loadCases()" style="width:160px;padding:7px 12px;font-size:13px">
+          <option value="">All Statuses</option>
+          <option value="Open">Open</option>
+          <option value="Under Review">Under Review</option>
+          <option value="Escalated">Escalated</option>
+          <option value="Resolved">Resolved</option>
+          <option value="False Positive">False Positive</option>
+        </select>
+        <select class="form-select" id="filter-risk" onchange="loadCases()" style="width:140px;padding:7px 12px;font-size:13px">
+          <option value="">All Risk Levels</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <button class="btn btn-primary" onclick="loadCases()">🔄 Refresh</button>
+      </div>
+    </header>
+
+    <div class="page-content">
+      <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start">
+
+        <!-- Cases Table -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Investigation Cases</span>
+            <span class="text-muted" id="case-count" style="font-size:12px">Loading...</span>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Case ID</th>
+                  <th>Transaction</th>
+                  <th>Amount</th>
+                  <th>Risk</th>
+                  <th>Status</th>
+                  <th>Assigned</th>
+                  <th>Created</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="cases-tbody">
+                <tr><td colspan="8" style="text-align:center;padding:40px"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Case Detail Panel -->
+        <div>
+          <div class="card" id="detail-card" style="display:none">
+            <div class="card-header">
+              <span class="card-title">Case #<span id="detail-id">—</span></span>
+              <span id="detail-status-badge">—</span>
+            </div>
+            <div class="card-body">
+
+              <div class="metric-row">
+                <span class="metric-name">Transaction ID</span>
+                <span class="metric-value font-mono text-accent" id="detail-txid">—</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Amount</span>
+                <span class="metric-value" id="detail-amount">—</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Risk Category</span>
+                <span id="detail-risk">—</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Fraud Score</span>
+                <span class="metric-value font-mono" id="detail-score">—</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Created</span>
+                <span class="metric-value" id="detail-created">—</span>
+              </div>
+
+              <hr style="border-color:var(--border);margin:16px 0">
+
+              <div class="form-group mb-16">
+                <label class="form-label" for="edit-status">Update Status</label>
+                <select class="form-select" id="edit-status">
+                  <option value="Open">Open</option>
+                  <option value="Under Review">Under Review</option>
+                  <option value="Escalated">Escalated</option>
+                  <option value="Resolved">Resolved</option>
+                  <option value="False Positive">False Positive</option>
+                </select>
+              </div>
+
+              <div class="form-group mb-16">
+                <label class="form-label" for="edit-assigned">Assigned To</label>
+                <input class="form-input" type="text" id="edit-assigned" placeholder="analyst@company.com">
+              </div>
+
+              <div class="form-group mb-16">
+                <label class="form-label" for="edit-notes">Investigation Notes</label>
+                <textarea class="form-textarea" id="edit-notes" rows="4" placeholder="Add notes..."></textarea>
+              </div>
+
+              <button class="btn btn-primary w-full" id="save-btn" onclick="saveCase()">
+                💾 Save Changes
+              </button>
+            </div>
+          </div>
+
+          <div class="card" id="detail-placeholder">
+            <div class="card-body">
+              <div class="empty-state">
+                <div class="empty-icon">🗂️</div>
+                <div class="empty-title">Select a Case</div>
+                <div class="empty-desc">Click "Open" on any case to view details and update its status.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/utils.js"></script>
+<script>
+  document.getElementById('sidebar-mount').innerHTML = SIDEBAR_HTML;
+  document.querySelectorAll('.nav-link').forEach(a => {
+    if (a.id === 'nav-investigations') a.classList.add('active');
+  });
+
+  let selectedId = null;
+  let cases = [];
+
+  async function loadCases() {
+    const status   = document.getElementById('filter-status').value;
+    const risk     = document.getElementById('filter-risk').value;
+    const tbody    = document.getElementById('cases-tbody');
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px"><span class="spinner"></span></td></tr>`;
+
+    try {
+      const params = {};
+      if (status) params.status = status;
+      if (risk)   params.risk_category = risk;
+      cases = await api.investigations(params);
+
+      document.getElementById('case-count').textContent = `${cases.length} case${cases.length !== 1 ? 's' : ''}`;
+
+      if (!cases.length) {
+        tbody.innerHTML = `<tr><td colspan="8">${emptyState('🗂️','No Cases Found','Suspicious transactions will automatically create investigation cases.')}</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = cases.map(c => `
+        <tr id="case-row-${c.id}">
+          <td class="font-mono text-accent">#${c.id}</td>
+          <td class="font-mono">#${c.prediction_id}</td>
+          <td>${fmtCurrency(c.amount)}</td>
+          <td>${riskBadge(c.risk_category)}</td>
+          <td>${statusBadge(c.case_status)}</td>
+          <td class="text-muted">${c.assigned_to || '—'}</td>
+          <td class="text-muted">${fmtDate(c.created_at)}</td>
+          <td><button class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="openCase(${c.id})">Open</button></td>
+        </tr>`).join('');
+
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--danger)">${e.message}</td></tr>`;
+    }
+  }
+
+  function openCase(id) {
+    selectedId = id;
+    const c = cases.find(x => x.id === id);
+    if (!c) return;
+
+    document.getElementById('detail-placeholder').style.display = 'none';
+    document.getElementById('detail-card').style.display = 'block';
+
+    document.getElementById('detail-id').textContent      = c.id;
+    document.getElementById('detail-txid').textContent    = '#' + c.prediction_id;
+    document.getElementById('detail-amount').textContent  = fmtCurrency(c.amount);
+    document.getElementById('detail-risk').innerHTML      = riskBadge(c.risk_category);
+    document.getElementById('detail-score').textContent   = c.fraud_probability ? `${(c.fraud_probability*100).toFixed(1)}%` : '—';
+    document.getElementById('detail-created').textContent = fmtDate(c.created_at);
+    document.getElementById('detail-status-badge').innerHTML = statusBadge(c.case_status);
+    document.getElementById('edit-status').value   = c.case_status;
+    document.getElementById('edit-assigned').value = c.assigned_to || '';
+    document.getElementById('edit-notes').value    = c.investigation_notes || '';
+
+    // Highlight selected row
+    document.querySelectorAll('[id^=case-row-]').forEach(r => r.style.background = '');
+    const row = document.getElementById(`case-row-${id}`);
+    if (row) row.style.background = 'var(--accent-glow)';
+  }
+
+  async function saveCase() {
+    if (!selectedId) return;
+    const btn = document.getElementById('save-btn');
+    showLoader(btn);
+    try {
+      const payload = {
+        case_status:         document.getElementById('edit-status').value,
+        assigned_to:         document.getElementById('edit-assigned').value || null,
+        investigation_notes: document.getElementById('edit-notes').value   || null,
+      };
+      await api.updateInvestigation(selectedId, payload);
+      toast('Case updated successfully', 'success');
+      await loadCases();
+      // Reopen the same case to reflect updates
+      const updated = cases.find(x => x.id === selectedId);
+      if (updated) openCase(selectedId);
+    } catch (e) {
+      toast('Update failed: ' + e.message, 'error');
+    } finally {
+      hideLoader(btn, '💾 Save Changes');
+    }
+  }
+
+  loadCases();
+</script>
+</body>
+</html>

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FraudShield AI — Dashboard</title>
+  <meta name="description" content="FraudShield AI: Real-time fraud detection and monitoring dashboard">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar injected by JS -->
+  <div id="sidebar-mount"></div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="topbar">
+      <div>
+        <div class="topbar-title">Dashboard</div>
+        <div class="topbar-subtitle">Real-time fraud monitoring overview</div>
+      </div>
+      <div class="topbar-actions">
+        <div id="health-indicator" class="status-dot text-muted"><span>Checking...</span></div>
+        <button class="btn btn-primary" onclick="refreshAll()">🔄 Refresh</button>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Alert: Model not loaded -->
+      <div id="model-alert" style="display:none;background:var(--warning-bg);border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-md);padding:14px 18px;margin-bottom:20px;font-size:13px;color:var(--warning)">
+        ⚠️ <strong>Model not trained.</strong> Run the Jupyter notebooks (04 and 05) to train the model, then restart the backend.
+        <a href="pages/model.html" style="color:var(--warning);font-weight:600;margin-left:6px">View Model Page →</a>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card accent">
+          <div class="stat-label">Total Analyzed</div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-icon">📊</div>
+          <div class="stat-change">All transactions processed</div>
+        </div>
+        <div class="stat-card danger">
+          <div class="stat-label">Suspicious</div>
+          <div class="stat-value" id="stat-suspicious">—</div>
+          <div class="stat-icon">🚨</div>
+          <div class="stat-change">Flagged transactions</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">Legitimate</div>
+          <div class="stat-value" id="stat-legitimate">—</div>
+          <div class="stat-icon">✅</div>
+          <div class="stat-change">Cleared transactions</div>
+        </div>
+        <div class="stat-card warning">
+          <div class="stat-label">Detection Rate</div>
+          <div class="stat-value" id="stat-rate">—</div>
+          <div class="stat-icon">📈</div>
+          <div class="stat-change">Fraud as % of total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Risk Score</div>
+          <div class="stat-value" id="stat-avg-risk">—</div>
+          <div class="stat-icon">🎯</div>
+          <div class="stat-change">Mean fraud probability</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">High Risk</div>
+          <div class="stat-value text-danger" id="stat-high">—</div>
+          <div class="stat-icon">🔴</div>
+          <div class="stat-change">Priority investigations</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-grid">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Fraud vs Legitimate</span>
+            <span class="text-muted" style="font-size:11px">Distribution</span>
+          </div>
+          <div class="card-body">
+            <div class="chart-container"><canvas id="chart-distribution"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Transaction Trend</span>
+            <span class="text-muted" style="font-size:11px">Last 7 days</span>
+          </div>
+          <div class="card-body">
+            <div class="chart-container"><canvas id="chart-trend"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Breakdown + Recent Suspicious -->
+      <div class="charts-grid">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Risk Category Breakdown</span>
+          </div>
+          <div class="card-body">
+            <div class="chart-container" style="height:200px"><canvas id="chart-risk-breakdown"></canvas></div>
+          </div>
+        </div>
+        <div class="card" style="grid-column: span 1;">
+          <div class="card-header">
+            <span class="card-title">Recent Suspicious Transactions</span>
+            <a href="pages/investigations.html" class="btn btn-ghost" style="font-size:12px;padding:4px 10px">View All</a>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Type</th><th>Amount</th><th>Risk</th><th>Score</th><th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="recent-table-body">
+                <tr><td colspan="6" style="text-align:center;padding:30px"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div><!-- /main-content -->
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+  // Inject sidebar
+  document.getElementById('sidebar-mount').innerHTML = SIDEBAR_HTML;
+  document.querySelectorAll('.nav-link').forEach(a => {
+    if (a.getAttribute('href').includes('index.html') || a.getAttribute('href') === '../index.html') a.classList.add('active');
+  });
+
+  const CHART_DEFAULTS = {
+    color: '#8b949e',
+    backgroundColor: 'transparent',
+    borderColor: 'rgba(255,255,255,0.08)',
+  };
+
+  Chart.defaults.color = CHART_DEFAULTS.color;
+  Chart.defaults.borderColor = CHART_DEFAULTS.borderColor;
+
+  let charts = {};
+
+  function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+  async function refreshAll() {
+    await Promise.all([loadStats(), loadTrend(), loadRecent()]);
+  }
+
+  async function loadStats() {
+    try {
+      const s = await api.dashboardStats();
+      document.getElementById('stat-total').textContent       = fmtNum(s.total_transactions);
+      document.getElementById('stat-suspicious').textContent  = fmtNum(s.total_suspicious);
+      document.getElementById('stat-legitimate').textContent  = fmtNum(s.total_legitimate);
+      document.getElementById('stat-rate').textContent        = fmtPct(s.fraud_detection_rate);
+      document.getElementById('stat-avg-risk').textContent    = fmtScore(s.average_risk_score);
+      document.getElementById('stat-high').textContent        = fmtNum(s.high_risk_count);
+
+      // Distribution donut
+      destroyChart('dist');
+      charts['dist'] = new Chart(document.getElementById('chart-distribution'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Legitimate', 'Suspicious'],
+          datasets: [{ data: [s.total_legitimate, s.total_suspicious],
+            backgroundColor: ['rgba(34,197,94,0.8)', 'rgba(239,68,68,0.8)'],
+            borderColor: ['#22c55e', '#ef4444'], borderWidth: 2, hoverOffset: 6 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } }, cutout: '65%' }
+      });
+
+      // Risk breakdown bar
+      destroyChart('risk');
+      charts['risk'] = new Chart(document.getElementById('chart-risk-breakdown'), {
+        type: 'bar',
+        data: {
+          labels: ['High Risk', 'Medium Risk', 'Low Risk'],
+          datasets: [{ label: 'Transactions',
+            data: [s.high_risk_count, s.medium_risk_count, s.low_risk_count],
+            backgroundColor: ['rgba(239,68,68,0.7)', 'rgba(245,158,11,0.7)', 'rgba(34,197,94,0.7)'],
+            borderRadius: 6, borderSkipped: false }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } }
+        }
+      });
+
+    } catch (e) {
+      toast('Failed to load stats: ' + e.message, 'error');
+      if (e.message.includes('503') || e.message.toLowerCase().includes('model')) {
+        document.getElementById('model-alert').style.display = 'block';
+      }
+    }
+  }
+
+  async function loadTrend() {
+    try {
+      const data = await api.trendData(7);
+      destroyChart('trend');
+      charts['trend'] = new Chart(document.getElementById('chart-trend'), {
+        type: 'line',
+        data: {
+          labels: data.map(d => d.date),
+          datasets: [
+            { label: 'Total', data: data.map(d => d.total),
+              borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)',
+              fill: true, tension: 0.4, pointRadius: 3 },
+            { label: 'Flagged', data: data.map(d => d.flagged),
+              borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)',
+              fill: true, tension: 0.4, pointRadius: 3 }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } },
+          plugins: { legend: { position: 'top' } }
+        }
+      });
+    } catch (e) {
+      // Trend data is optional — ignore silently
+    }
+  }
+
+  async function loadRecent() {
+    try {
+      const rows = await api.recentSuspicious(10);
+      const tbody = document.getElementById('recent-table-body');
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="6">${emptyState('🔍', 'No suspicious transactions yet', 'Submit a transaction via the Analyzer to see results here.')}</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(r => `<tr>
+        <td class="font-mono text-accent">#${r.transaction_id}</td>
+        <td>${r.transaction_type}</td>
+        <td>${fmtCurrency(r.amount)}</td>
+        <td>${riskBadge(r.risk_category)}</td>
+        <td class="font-mono">${(r.fraud_probability * 100).toFixed(1)}%</td>
+        <td class="text-muted">${fmtDate(r.timestamp)}</td>
+      </tr>`).join('');
+    } catch (e) {
+      document.getElementById('recent-table-body').innerHTML =
+        `<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">${e.message}</td></tr>`;
+    }
+  }
+
+  // Check API health
+  async function checkHealth() {
+    try {
+      const h = await api.health();
+      const el = document.getElementById('health-indicator');
+      if (h.status === 'healthy' && h.model_loaded) {
+        el.innerHTML = '<span>Model Ready</span>';
+        el.style.color = 'var(--success)';
+      } else if (!h.model_loaded) {
+        document.getElementById('model-alert').style.display = 'block';
+        el.innerHTML = '<span>Model Not Trained</span>';
+        el.style.color = 'var(--warning)';
+      }
+    } catch (e) {
+      const el = document.getElementById('health-indicator');
+      el.innerHTML = '<span>API Offline</span>';
+      el.style.color = 'var(--danger)';
+      toast('Cannot reach backend at localhost:8000. Is the server running?', 'error', 8000);
+    }
+  }
+
+  // Init
+  checkHealth();
+  refreshAll();
+</script>
+</body>
+</html>

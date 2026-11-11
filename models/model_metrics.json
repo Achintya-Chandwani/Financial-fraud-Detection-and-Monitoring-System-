@@ -1,0 +1,57 @@
+{
+  "model_name": "XGBoost",
+  "model_version": "1.0.0",
+  "training_date": "2026-11-11T23:07:36.566800",
+  "threshold": 0.1,
+  "precision_score": 1.0,
+  "recall_score": 1.0,
+  "f1_score": 1.0,
+  "roc_auc_score": 1.0,
+  "pr_auc_score": 1.0,
+  "confusion_matrix": [
+    [
+      9893,
+      0
+    ],
+    [
+      0,
+      107
+    ]
+  ],
+  "training_samples": 78930,
+  "test_samples": 10000,
+  "feature_columns": [
+    "transaction_type_encoded",
+    "amount",
+    "origin_balance_before",
+    "origin_balance_after",
+    "dest_balance_before",
+    "dest_balance_after",
+    "balance_diff_origin",
+    "balance_diff_dest",
+    "amount_to_origin_ratio",
+    "is_large_transfer"
+  ],
+  "shap_feature_importance": {
+    "transaction_type_encoded": 0.723325788974762,
+    "amount": 2.335003614425659,
+    "origin_balance_before": 0.017917033284902573,
+    "origin_balance_after": 2.885552167892456,
+    "dest_balance_before": 0.03959343954920769,
+    "dest_balance_after": 0.3231009542942047,
+    "balance_diff_origin": 2.5150065422058105,
+    "balance_diff_dest": 2.7933640480041504,
+    "amount_to_origin_ratio": 0.33613330125808716,
+    "is_large_transfer": 0.0
+  },
+  "all_models": [
+    {
+      "model_name": "XGBoost",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0
+    }
+  ]
+}
