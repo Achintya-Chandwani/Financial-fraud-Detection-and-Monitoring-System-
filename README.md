@@ -1,138 +1,134 @@
 ﻿<div align="center">
 
-# FraudShield AI
+# 🛡️ FraudShield AI
 
 ### End-to-End Intelligent Financial Fraud Detection & Monitoring Platform
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Online%20Dashboard-brightgreen?style=for-the-badge&logo=googlechrome&logoColor=white)](https://achintya-chandwani.github.io/Financial-fraud-Detection-and-Monitoring-System-/)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Achintya-Chandwani/Financial-fraud-Detection-and-Monitoring-System-)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![XGBoost](https://img.shields.io/badge/XGBoost-ML_Model-FF6600?style=for-the-badge&logoColor=white)](https://xgboost.readthedocs.io)
-[![MySQL](https://img.shields.io/badge/MySQL-Database-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://mysql.com)
+[![XGBoost](https://img.shields.io/badge/XGBoost-ML_Model-FF6600?style=for-the-badge&logo=xgboost&logoColor=white)](https://xgboost.readthedocs.io)
 [![SHAP](https://img.shields.io/badge/SHAP-Explainability-FF4B4B?style=for-the-badge)](https://shap.readthedocs.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
-**A production-grade ML system that detects financial transaction fraud in real-time using XGBoost + SHAP explainability, served through a FastAPI backend and a premium dark-mode SaaS dashboard.**
+**A production-grade machine learning platform that detects financial transaction fraud in real-time using XGBoost with SHAP explainability, served through an asynchronous FastAPI backend and a dark-mode SaaS dashboard.**
+
+---
+
+### 🌐 [Click Here to View the Live Deployed Platform](https://achintya-chandwani.github.io/Financial-fraud-Detection-and-Monitoring-System-/)
+*No installation required — launch the interactive dashboard, run transactions through the analyzer, and explore SHAP explanations directly in your browser.*
 
 </div>
 
 ---
 
-## Live Demo
+## 📸 Screenshots & Live UI
 
-### Real-Time Dashboard
+### Real-Time Monitoring Dashboard
 ![FraudShield AI Dashboard](docs/screenshots/dashboard.png)
-*Live monitoring dashboard showing 72+ analyzed transactions with fraud distribution charts, risk category breakdown, and trend analysis*
+*Live monitoring dashboard with fraud distribution analytics, risk category breakdowns, and 7-day transaction trend tracking.*
 
-### Transaction Analyzer — SHAP Explainability
+### Transaction Analyzer with SHAP Explainability
 ![Transaction Analyzer with SHAP Results](docs/screenshots/analyzer.png)
-*A suspicious TRANSFER of $350,000 flagged at **99.92% fraud probability** with SHAP feature importance explaining exactly WHY*
+*A suspicious TRANSFER of $350,000 flagged at **99.92% fraud probability** with SHAP feature importance breaking down the risk drivers.*
 
 ### Model Performance Metrics
 ![Model Performance Page](docs/screenshots/model.png)
-*XGBoost metrics: Precision, Recall, F1-Score, ROC-AUC, PR-AUC with confusion matrix and feature importance*
+*XGBoost metrics: Precision, Recall, F1-Score, ROC-AUC, PR-AUC with confusion matrix and feature rankings.*
 
 ---
 
-## Key Features
+## ⚡ Key Features
 
 | Feature | Description |
 |---|---|
-| **XGBoost Classifier** | Trained on PaySim synthetic financial dataset with SMOTE class balancing |
-| **SHAP Explainability** | Every prediction comes with feature-level explanation (TreeExplainer) |
-| **Real-Time Scoring** | Sub-second fraud probability with risk categorization (High/Medium/Low) |
-| **Live Dashboard** | Dark-mode SaaS UI with Chart.js visualizations auto-refreshing from MySQL |
-| **Transaction Analyzer** | Interactive form with instant fraud analysis and SHAP bar charts |
-| **Batch Processing** | Upload CSV files for bulk fraud scoring |
-| **Case Management** | Investigation workflow with status tracking (Open/Investigating/Closed) |
-| **MySQL Persistence** | Full transaction + prediction history stored in relational DB |
-| **REST API** | 12+ FastAPI endpoints with Swagger/OpenAPI docs |
-| **33 Unit Tests** | pytest suite covering API endpoints and ML service |
+| **XGBoost Classifier** | Trained on financial transaction logs with SMOTE class balancing for extreme imbalance |
+| **SHAP Explainability** | Every individual prediction provides TreeExplainer feature attribution for auditability |
+| **Real-Time Scoring** | Sub-second risk scoring with categorization (High, Medium, Low Risk) |
+| **Live Interactive Dashboard** | Dark glassmorphism SaaS UI with Chart.js analytics and responsive layout |
+| **Interactive Analyzer** | Form to submit custom transactions and see instant risk metrics and SHAP bars |
+| **Batch CSV Processing** | Bulk CSV transaction upload with vectorized prediction pipelines |
+| **Case Management** | Investigation workflow with status tracking (Open, Under Review, Escalated, Resolved) |
+| **Database Persistence** | Relational history and transaction logging via SQLAlchemy + MySQL |
+| **RESTful API** | 12+ FastAPI endpoints with auto-generated OpenAPI/Swagger documentation |
+| **Comprehensive Test Suite** | 33 unit and integration tests covering the API routes and ML service |
 
 ---
 
-## Architecture
+## 🏛️ System Architecture
 
 ```
-Frontend (Vanilla JS)  <-->  Backend (FastAPI)  <-->  ML Pipeline (Python)
-   Dashboard                  REST API                 XGBoost + SMOTE
-   Analyzer                   SQLAlchemy               SHAP TreeExplainer
-   Batch                      CORS / Auth-ready        Joblib artifacts
-   Investigations             MySQL 8.0 (4 tables)
-   Model Performance
+Frontend (Vanilla JS SPA)  <───>  Backend (FastAPI REST)  <───>  ML Pipeline (Python)
+├── Live Monitoring Dashboard      ├── Pydantic Validation         ├── XGBoost Classifier
+├── Transaction Analyzer (SHAP)    ├── SQLAlchemy ORM              ├── SMOTE Balancing
+├── Batch CSV Processor            ├── CORS & Async Handlers       ├── SHAP TreeExplainer
+├── Investigation Management       └── MySQL 8.0 Persistence       └── Joblib Artifacts
+└── Model Evaluation Suite
 ```
 
 ---
 
-## Technology Stack
+## 🛠️ Technology Stack
 
-### Machine Learning
-| Library | Purpose |
-|---|---|
-| **XGBoost** | Primary fraud detection classifier |
-| **scikit-learn** | Preprocessing, StandardScaler, metrics |
-| **imbalanced-learn** | SMOTE oversampling for class imbalance |
-| **SHAP** | Model explainability (TreeExplainer) |
-| **Pandas / NumPy** | Data manipulation and feature engineering |
-| **Matplotlib / Seaborn** | Visualization in notebooks |
-| **Joblib** | Model serialization |
+### Machine Learning & Data Science
+* **XGBoost**: Primary gradient boosted classifier optimized for tabular fraud patterns.
+* **scikit-learn**: Feature scaling (`StandardScaler`), metric evaluations, and pipeline assembly.
+* **imbalanced-learn**: SMOTE oversampling to counter severe fraud label imbalance (~1%).
+* **SHAP**: Game-theoretic feature attribution explanations (TreeExplainer).
+* **Pandas & NumPy**: High-performance vectorized data manipulation.
+* **Joblib**: Efficient serialization of trained model pipelines.
 
-### Backend
-| Library | Purpose |
-|---|---|
-| **FastAPI** | High-performance async REST API |
-| **SQLAlchemy** | ORM for MySQL |
-| **PyMySQL** | MySQL connector |
-| **Pydantic** | Request/response validation |
-| **Uvicorn** | ASGI server |
-| **Loguru** | Structured logging |
+### Backend Infrastructure
+* **FastAPI**: Modern, high-performance async Python web framework.
+* **Uvicorn**: Lightning-fast ASGI production web server.
+* **SQLAlchemy & PyMySQL**: Production ORM and connector for MySQL relational storage.
+* **Pydantic v2**: Type-safe input and output data validation.
+* **Loguru**: Structured, formatted logging.
 
 ### Frontend
-| Technology | Purpose |
-|---|---|
-| **Vanilla JavaScript** | Zero-framework SPA logic |
-| **Chart.js** | Doughnut, bar, and line charts |
-| **CSS3** | Custom dark glassmorphism design system |
-| **HTML5** | Semantic markup |
+* **Vanilla JavaScript (ES6+)**: Zero-framework, lightweight SPA client.
+* **Chart.js**: Dynamic doughnut, line, and bar chart visualizations.
+* **Modern CSS3**: Dark-mode glassmorphism design system with responsive layouts.
 
 ---
 
-## Installation
+## 🚀 Quickstart & Setup
 
-### Prerequisites
-- Python 3.11+
-- MySQL 8.0
-- Git
+### Option 1: Live Web Demo (Zero Install)
+You can test the frontend immediately via GitHub Pages:
+👉 **[Open Live Demo](https://achintya-chandwani.github.io/Financial-fraud-Detection-and-Monitoring-System-/)**
 
-### 1. Clone the Repository
+---
+
+### Option 2: Run Locally (Full Stack with Backend & DB)
+
+#### 1. Clone the Repository
 ```bash
 git clone https://github.com/Achintya-Chandwani/Financial-fraud-Detection-and-Monitoring-System-.git
 cd Financial-fraud-Detection-and-Monitoring-System-
 ```
 
-### 2. Create Virtual Environment
+#### 2. Create Virtual Environment & Install Dependencies
 ```bash
 python -m venv venv
 
 # Windows
 venv\Scripts\activate
 
-# macOS/Linux
+# macOS / Linux
 source venv/bin/activate
-```
 
-### 3. Install Dependencies
-```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure Environment
+#### 3. Environment Configuration
+Copy the example environment file and update your MySQL settings:
 ```bash
 cp .env.example .env
-# Edit .env with your MySQL password
 ```
-
-`.env` settings:
-```
+Default configuration (`.env`):
+```ini
 DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=fraudshield
@@ -140,201 +136,90 @@ DB_USER=root
 DB_PASSWORD=your_mysql_password
 ```
 
-### 5. Create MySQL Database
+#### 4. Train the Machine Learning Model
 ```bash
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS fraudshield CHARACTER SET utf8mb4;"
-mysql -u root -p fraudshield < database/schema.sql
-```
-
-### 6. Train the ML Model
-```bash
-# Option A: Standalone script (fastest)
+# Standalone training script (trains XGBoost, runs evaluation, exports artifacts)
 python train_model.py
-
-# Option B: Run Jupyter notebooks in order
-jupyter notebook
-# 01_EDA -> 02_DataPreprocessing -> 03_FeatureEngineering -> 04_ModelTraining -> 05_ModelEvaluation
 ```
 
-### 7. Start the Application
-```bash
-# Terminal 1 - Backend API
-uvicorn backend.main:app --host 0.0.0.0 --port 8000
+#### 5. Launch Application Services
 
-# Terminal 2 - Frontend
-python -m http.server 5500 --directory frontend
-```
+* **Windows 1-Click Startup:**
+  Simply run:
+  ```cmd
+  start_project.bat
+  ```
 
-### 8. Open in Browser
+* **Manual Startup (Terminal 1 - FastAPI Backend):**
+  ```bash
+  uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+  ```
 
-| URL | Description |
+* **Manual Startup (Terminal 2 - Frontend Server):**
+  ```bash
+  python -m http.server 5500 --directory frontend
+  ```
+
+#### 6. Open in Browser
+
+| Interface | URL |
 |---|---|
-| http://localhost:5500 | Dashboard |
-| http://localhost:5500/pages/analyzer.html | Transaction Analyzer |
-| http://localhost:5500/pages/model.html | Model Performance |
-| http://localhost:8000/docs | Interactive API Docs (Swagger) |
+| **Monitoring Dashboard** | [http://localhost:5500](http://localhost:5500) |
+| **Transaction Analyzer** | [http://localhost:5500/pages/analyzer.html](http://localhost:5500/pages/analyzer.html) |
+| **Model Performance** | [http://localhost:5500/pages/model.html](http://localhost:5500/pages/model.html) |
+| **Swagger API Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) |
 
 ---
 
-## ML Pipeline
+## 📊 Dataset & Feature Engineering
 
-### Dataset
-- **PaySim** — Synthetic financial transactions based on real mobile money logs
-- 50,000+ transactions, ~1.3% fraud rate
-- Features: transaction type, amount, origin/destination balances
-
-### Feature Engineering
-| Feature | Description |
-|---|---|
-| `transaction_type_encoded` | Categorical encoding (CASH_IN=0, CASH_OUT=1, DEBIT=2, PAYMENT=3, TRANSFER=4) |
-| `amount` | Transaction amount (USD) |
-| `origin_balance_before/after` | Sender account balance change |
-| `dest_balance_before/after` | Recipient account balance |
-| `balance_diff_origin` | origin_before - origin_after |
-| `balance_diff_dest` | dest_after - dest_before |
-| `amount_to_origin_ratio` | amount / (origin_before + epsilon) - detects account draining |
-| `is_large_transfer` | Binary flag: amount > $200,000 |
-
-### Model Performance
-| Metric | Score |
-|---|---|
-| **Precision** | 1.0000 |
-| **Recall** | 1.0000 |
-| **F1 Score** | 1.0000 |
-| **ROC-AUC** | 1.0000 |
-| **PR-AUC** | 1.0000 |
-
-> *Scores on clean synthetic data. On real-world PaySim (Kaggle): F1 ~0.87, ROC-AUC ~0.98*
-
-### Training Pipeline
-```
-Raw Data -> EDA -> Feature Engineering -> Train/Test Split (80/20)
-  -> StandardScaler -> SMOTE oversampling -> XGBoost
-  -> Threshold Optimization (F1) -> SHAP TreeExplainer -> Save artifacts
-```
+* **Dataset:** Based on the **PaySim** mobile money financial dataset (synthetic financial logs modeling real mobile money transactions).
+* **Key Engineered Features:**
+  - `amount`: Raw transaction volume in USD.
+  - `balance_diff_origin`: Difference between old and new sender balance.
+  - `balance_diff_dest`: Difference between new and old recipient balance.
+  - `amount_to_origin_ratio`: Amount divided by origin balance (detects total account draining).
+  - `is_large_transfer`: Indicator for transfers exceeding typical daily limits ($200,000+).
+  - `transaction_type_encoded`: Categorical encoding (`TRANSFER`, `CASH_OUT`, `DEBIT`, `PAYMENT`, `CASH_IN`).
 
 ---
 
-## API Reference
+## 📡 API Reference Overview
 
-```
-GET  /api/health                    Health check (DB + model status)
-
-POST /api/predict                   Analyze single transaction + SHAP explanation
-POST /api/predict/batch             Bulk transaction scoring
-GET  /api/explanations/{id}         Retrieve past SHAP explanation
-
-GET  /api/dashboard/stats           Aggregate counts, detection rate, avg risk
-GET  /api/dashboard/recent-suspicious Latest flagged transactions
-GET  /api/dashboard/trend           7-day transaction trend
-
-GET  /api/transactions              Paginated transaction list (filterable)
-GET  /api/transactions/{id}         Full transaction + prediction detail
-
-GET  /api/investigations            List investigation cases
-POST /api/investigations            Open new case
-PATCH /api/investigations/{id}      Update case status/notes
-```
-
-### Example Request
-```bash
-curl -X POST http://localhost:8000/api/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "transaction_type": "TRANSFER",
-    "amount": 350000,
-    "origin_account": "C123456789",
-    "destination_account": "C987654321",
-    "origin_balance_before": 15000,
-    "origin_balance_after": 0,
-    "dest_balance_before": 0,
-    "dest_balance_after": 350000
-  }'
-```
-
-### Example Response
-```json
-{
-  "transaction_id": 42,
-  "predicted_class": 1,
-  "label": "Suspicious",
-  "fraud_probability": 0.9992,
-  "risk_category": "High",
-  "model_version": "1.0.0",
-  "top_features": [
-    {"feature": "balance_diff_dest",    "value": 350000.0, "importance": 3.82, "direction": "increases_risk"},
-    {"feature": "amount",               "value": 350000.0, "importance": 3.28, "direction": "increases_risk"},
-    {"feature": "origin_balance_after", "value": 0.0,      "importance": 1.30, "direction": "increases_risk"}
-  ]
-}
-```
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Service health, DB connectivity & model status |
+| `POST` | `/api/predict` | Single transaction fraud evaluation with SHAP breakdown |
+| `POST` | `/api/predict/batch` | Bulk transaction CSV scoring |
+| `GET` | `/api/dashboard/stats` | High-level fraud rates and volume summaries |
+| `GET` | `/api/dashboard/trend` | Multi-day transaction volume and flag trends |
+| `GET` | `/api/transactions` | Filterable, paginated transaction history |
+| `GET` | `/api/investigations` | Active investigation cases |
+| `PATCH`| `/api/investigations/{id}` | Update case status (`Under Review`, `Resolved`, etc.) |
 
 ---
 
-## Running Tests
+## 🧪 Unit & Integration Tests
 
+Run the test suite using pytest:
 ```bash
-# All 33 tests (SQLite in-memory — no MySQL required)
+# Run all tests (utilizes SQLite in-memory, no external database needed)
 pytest
 
-# With coverage
-pytest --cov=backend --cov-report=html
-
-# Individual suites
-pytest tests/test_api.py -v
-pytest tests/test_model.py -v
-```
-
-Test coverage:
-- All 12 API endpoints
-- Feature engineering (8 cases)
-- Risk categorization logic
-- Model loading/error handling
-
----
-
-## Project Structure
-
-```
-FraudShield-AI/
-├── backend/
-│   ├── app/
-│   │   ├── api/              # FastAPI route handlers
-│   │   ├── core/             # Config + logging
-│   │   ├── database/         # SQLAlchemy connection
-│   │   ├── models/           # ORM models
-│   │   ├── schemas/          # Pydantic schemas
-│   │   └── services/         # ML service + CRUD
-│   └── main.py
-├── frontend/
-│   ├── css/main.css
-│   ├── js/ (api.js, utils.js)
-│   ├── index.html            # Dashboard
-│   └── pages/               # Analyzer, Batch, Investigations, Model
-├── notebooks/               # 01-05 Jupyter notebooks
-├── models/                  # Saved artifacts (gitignored)
-├── data/                    # Dataset (gitignored)
-├── database/schema.sql
-├── tests/
-├── train_model.py
-├── requirements.txt
-└── .env.example
+# Run with coverage report
+pytest --cov=backend --cov-report=term-missing
 ```
 
 ---
 
-## Author
+## 👤 Author
 
 **Achintya Chandwani**
-- Aspiring ML Engineer / Data Scientist
-- GitHub: https://github.com/Achintya-Chandwani
+* GitHub: [@Achintya-Chandwani](https://github.com/Achintya-Chandwani)
+* Email: chandwaniachintya@gmail.com
 
 ---
 
-## License
+## 📄 License
 
-MIT License — see [LICENSE](LICENSE)
-
----
-
-*FraudShield AI — From raw data to production-ready fraud detection*
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

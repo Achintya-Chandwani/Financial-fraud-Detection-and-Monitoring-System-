@@ -1,7 +1,7 @@
 @echo off
+cd /d "%~dp0"
 REM ================================================================
 REM FraudShield AI — Windows Startup Script
-REM Run this AFTER completing the initial setup in README.md
 REM ================================================================
 
 echo.
@@ -20,10 +20,9 @@ if not exist ".env" (
 )
 
 REM Check if virtual environment exists
-if not exist "venv\Scripts\activate.bat" (
+if not exist "venv\Scripts\python.exe" (
     echo [ERROR] Virtual environment not found!
     echo Run: python -m venv venv
-    echo Then: venv\Scripts\activate
     echo Then: pip install -r requirements.txt
     echo.
     pause
@@ -33,23 +32,23 @@ if not exist "venv\Scripts\activate.bat" (
 REM Check if model exists
 if not exist "models\best_model.joblib" (
     echo [WARNING] Trained model not found.
-    echo Run the Jupyter notebooks in order (01 to 05) first.
-    echo The backend will start but predictions won't work until model is trained.
+    echo Run python train_model.py first.
+    echo The backend will start but predictions will not work until model is trained.
     echo.
 )
 
-REM Activate venv and start backend in new window
+REM Start FastAPI backend in new window
 echo [1/2] Starting FastAPI backend on http://localhost:8000 ...
-start "FraudShield Backend" cmd /k "venv\Scripts\activate && uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000"
+start "FraudShield Backend" "%~dp0venv\Scripts\python.exe" -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 
-REM Brief pause to let backend start
-timeout /t 3 /nobreak > nul
+REM Brief pause
+ping 127.0.0.1 -n 3 >nul
 
 REM Start frontend using Python's built-in HTTP server in new window
 echo [2/2] Starting frontend server on http://localhost:5500 ...
-start "FraudShield Frontend" cmd /k "venv\Scripts\activate && python -m http.server 5500 --directory frontend"
+start "FraudShield Frontend" "%~dp0venv\Scripts\python.exe" -m http.server 5500 --directory "%~dp0frontend"
 
-timeout /t 2 /nobreak > nul
+ping 127.0.0.1 -n 3 >nul
 
 echo.
 echo  ========================================
@@ -64,5 +63,4 @@ echo  Close the terminal windows to stop the services.
 echo.
 
 REM Open browser
-timeout /t 3 /nobreak > nul
 start http://localhost:5500
